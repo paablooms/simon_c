@@ -179,20 +179,6 @@ unsigned char aleatorio_1_4(void){
     return (unsigned char)((lfsr_siguiente() & 0x03) + 1);
 }
 
-// ------------------------------------------------------------
-// COLORES + UI (grlib) - repintado
-// ------------------------------------------------------------
-static inline uint32_t RGB(uint8_t r, uint8_t g, uint8_t b){
-    return ((uint32_t)r<<16) | ((uint32_t)g<<8) | (uint32_t)b;
-}
-uint32_t baja_intensidad(uint32_t c, uint8_t div){
-    uint8_t r = (c>>16) & 0xFF;
-    uint8_t g = (c>>8)  & 0xFF;
-    uint8_t b = (c>>0)  & 0xFF;
-    r /= div; g /= div; b /= div;
-    return RGB(r,g,b);
-}
-
 int main(void){
     WDTCTL = WDTPW | WDTHOLD;
 
