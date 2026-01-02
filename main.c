@@ -12,7 +12,7 @@
 #define NOTE_SOL  392
 #define NOTE_SI   494
 
-#define GRAPHICS_COLOR_DARK_YELLOW					 0x008B5400
+#define GRAPHICS_COLOR_DARK_YELLOW  0x008B5400
 
 Graphics_Context g_sContext;
 
@@ -103,52 +103,75 @@ __interrupt void Interrupcion_T0(void){
 }
 
 // ------------------------------------------------------------
-// START por interrupción (ejemplo P1.3)
-// (cambia BIT3 si tú usas otro)
+// START por interrupción  (según tu tabla: botón joystick = P2.5)
 // ------------------------------------------------------------
 void boton_start(void){
-    P1DIR &= ~BIT3;
-    P1REN |= BIT3;
-    P1OUT |= BIT3;
-    P1IFG &= ~BIT3;
-    P1IES |= BIT3;
-    P1IE  |= BIT3;
+    P2DIR &= ~BIT5;
+    P2REN |= BIT5;
+    P2OUT |= BIT5;      // pull-up
+    P2IFG &= ~BIT5;
+    P2IES |= BIT5;      // flanco bajada
+    P2IE  |= BIT5;
 }
 
-#pragma vector=PORT1_VECTOR
-__interrupt void Interrupcion_P1(void){
-    if(!(P1IN & BIT3)){
+#pragma vector=PORT2_VECTOR
+__interrupt void Interrupcion_P2(void){
+    if(!(P2IN & BIT5)){
         start = 1;
     }
-    P1IFG &= ~BIT3;
+    P2IFG &= ~BIT5;
     LPM0_EXIT;
 }
 
 // ------------------------------------------------------------
-// BUZZER (PWM con Timer1) - por defecto P2.1 / TA1CCR1
-// (si tu buzzer está en otro pin, cambia BIT1 o CCR)
+// BUZZER (según tu tabla: P2.6)
+// OJO: P2.6 normalmente NO es salida PWM hardware del timer,
+// así que lo hacemos con Timer1 + interrupción (toggle software).
 // ------------------------------------------------------------
-void init_buzzer(void){
-    P2DIR  |= BIT1;
-    P2SEL  |= BIT1;
-    P2SEL2 &= ~BIT1;
+volatile unsigned char buzzer_activo = 0;
 
-    TA1CTL = TASSEL_2 | ID_3 | MC_1;  // SMCLK/8 => 2MHz
-    TA1CCTL1 = OUTMOD_7;
+void init_buzzer(void){
+    // P2.6 como GPIO
+    P2DIR  |= BIT6;
+    P2SEL  &= ~BIT6;
+    P2SEL2 &= ~BIT6;
+    P2OUT  &= ~BIT6;
+
+    // Timer1 parado de inicio
+    TA1CTL = MC_0;
+    TA1CCTL0 = 0;
     TA1CCR0 = 1000;
-    TA1CCR1 = 0;
 }
 
+// genera cuadrada a hz (toggle cada media onda)
 void suena_hz(unsigned int hz){
-    unsigned long periodo = 2000000UL / (unsigned long)hz; // 2MHz
-    if(periodo < 10) periodo = 10;
-    if(periodo > 65535) periodo = 65535;
-    TA1CCR0 = (unsigned int)(periodo - 1);
-    TA1CCR1 = (unsigned int)((periodo - 1) / 2);
+    unsigned long cuenta_media = 1000000UL / (unsigned long)hz; // 2MHz/(2*hz) => 1MHz/hz
+
+    if(cuenta_media < 10) cuenta_media = 10;
+    if(cuenta_media > 65535) cuenta_media = 65535;
+
+    TA1CTL = TASSEL_2 | ID_3 | MC_1;   // SMCLK/8 => 2MHz, UP
+    TA1CCR0 = (unsigned int)(cuenta_media - 1);
+    TA1CCTL0 = CCIE;
+
+    buzzer_activo = 1;
 }
 
 void apaga_sonido(void){
-    TA1CCR1 = 0;
+    buzzer_activo = 0;
+    TA1CCTL0 &= ~CCIE;
+    TA1CTL = MC_0;          // parar timer
+    P2OUT &= ~BIT6;         // asegurar bajo
+}
+
+#pragma vector=TIMER1_A0_VECTOR
+__interrupt void Interrupcion_T1(void){
+    if(buzzer_activo){
+        P2OUT ^= BIT6;      // toggle buzzer
+    }else{
+        P2OUT &= ~BIT6;
+    }
+    // no hace falta LPM0_EXIT aquí (el sonido puede seguir sin despertar CPU)
 }
 
 void sonido_color(unsigned char color){
@@ -229,7 +252,7 @@ int main(void){
         Graphics_fillRectangle(&g_sContext, &boton[i]);
     }
 
-    // ----- Juego (variables “tipo tus prácticas”)
+    // ----- Juego
     unsigned char secuencia[32];
 
     unsigned int ronda = 1;
@@ -240,24 +263,18 @@ int main(void){
     unsigned int T4_ticks = (unsigned int)(T_ticks / 4); if(T4_ticks < 1) T4_ticks = 1;
     unsigned int T2_ticks = (unsigned int)(2 * T_ticks);
 
-    // Estados (en español)
     typedef enum { BIENVENIDA=0, MENSAJE_RONDA, MAQUINA, TURNO_JUGADOR, FIN } estados_t;
     estados_t estado = BIENVENIDA;
 
-    // auxiliares reproducción máquina
-    unsigned char sub_maquina = 0;     // 0=mostrar, 1=pausa
+    unsigned char sub_maquina = 0;
     unsigned int paso_maquina = 0;
 
-    // jugador
     unsigned int paso_jugador = 0;
 
-    // temporización estado (ticks)
     unsigned int tms = 0;
 
-    // joystick gating
-    unsigned char estado_joystick = 0; // 0 neutral, 1 pulsado
+    unsigned char estado_joystick = 0;
 
-    // feedback del jugador
     unsigned char seleccion = 0;
     unsigned int tflash = 0;
 
@@ -300,7 +317,6 @@ int main(void){
                     paso_jugador = 0;
                     sub_maquina = 0;
 
-                    // recalcular tiempos (por si cambias T)
                     T_ticks = (unsigned int)(T / 25); if(T_ticks < 2) T_ticks = 2;
                     T4_ticks = (unsigned int)(T_ticks / 4); if(T4_ticks < 1) T4_ticks = 1;
                     T2_ticks = (unsigned int)(2 * T_ticks);
@@ -331,7 +347,6 @@ int main(void){
                     sub_maquina = 0;
                 }
 
-                // 1s
                 if(tms >= (1000/25)){
                     estado = MAQUINA;
                     tms = 0;
@@ -362,15 +377,14 @@ int main(void){
 
                 if(sub_maquina == 0){
                     if(tms == 1){
-                        unsigned char color = secuencia[paso_maquina];   // 1..4
-                        unsigned char k = color - 1;                    // 0..3
+                        unsigned char color = secuencia[paso_maquina];
+                        unsigned char k = color - 1;
 
                         Graphics_setForegroundColor(&g_sContext, color_alto[k]);
                         Graphics_fillRectangle(&g_sContext, &boton[k]);
 
                         sonido_color(color);
 
-                        // barra progreso
                         Graphics_Rectangle interior = barra;
                         interior.xMin += 1; interior.yMin += 1;
                         interior.xMax -= 1; interior.yMax -= 1;
@@ -409,7 +423,6 @@ int main(void){
                 break;
 
             case TURNO_JUGADOR: {
-                // timeout por paso
                 if(tms >= T2_ticks){
                     estado = FIN;
                     tms = 0;
@@ -417,14 +430,12 @@ int main(void){
                     break;
                 }
 
-                // leer joystick (tu estilo)
                 ejex = (unsigned int)lee_ch(0);
                 ejey = (unsigned int)lee_ch(3);
 
                 int dx = (int)ejex - 512;
                 int dy = (int)ejey - 512;
 
-                // zona muerta
                 if(dx < 100 && dx > -100 && dy < 100 && dy > -100){
                     estado_joystick = 0;
                 }
@@ -450,7 +461,6 @@ int main(void){
                 if(elegido != 0){
                     unsigned char esperado = secuencia[paso_jugador];
 
-                    // feedback visual + sonido
                     {
                         unsigned char k = elegido - 1;
                         Graphics_setForegroundColor(&g_sContext, color_alto[k]);
@@ -465,7 +475,6 @@ int main(void){
                         puntuacion++;
                         paso_jugador++;
 
-                        // barra progreso jugador
                         Graphics_Rectangle interior = barra;
                         interior.xMin += 1; interior.yMin += 1;
                         interior.xMax -= 1; interior.yMax -= 1;
@@ -486,7 +495,6 @@ int main(void){
                             ronda++;
                             if(ronda > 32) ronda = 32;
 
-                            // en ronda 32, T/2 (mínimo 200ms)
                             if(ronda == 32){
                                 if(T > 200) T /= 2;
                                 T_ticks = (unsigned int)(T / 25); if(T_ticks < 2) T_ticks = 2;
@@ -497,7 +505,7 @@ int main(void){
                             estado = MENSAJE_RONDA;
                             tms = 0;
                         }else{
-                            tms = 0; // reinicia timeout del próximo paso
+                            tms = 0;
                         }
                     }else{
                         estado = FIN;
@@ -505,7 +513,6 @@ int main(void){
                     }
                 }
 
-                // apagar feedback tras T/2
                 if(seleccion != 0){
                     tflash++;
                     if(tflash >= (T_ticks/2)){
@@ -555,4 +562,3 @@ int main(void){
         }
     }
 }
-
