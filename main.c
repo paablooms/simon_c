@@ -12,7 +12,7 @@
 #define NOTE_SOL  392
 #define NOTE_SI   494
 
-#define GRAPHICS_COLOR_YELLOW					 0x008B5400
+#define GRAPHICS_COLOR_DARK_YELLOW					 0x008B5400
 
 Graphics_Context g_sContext;
 
@@ -224,15 +224,15 @@ int main(void){
 
     // Colores: VERDE, AMARILLO, ROJO, AZUL
     uint32_t color_alto[4], color_bajo[4];
-    color_alto[0] = 0x00FF00;
-    color_alto[1] = 0xFFFF00;
-    color_alto[2] = 0xFF0000;
-    color_alto[3] = 0x0000FF;
+    color_alto[0] = GRAPHICS_COLOR_GREEN;
+    color_alto[1] = GRAPHICS_COLOR_YELLOW;
+    color_alto[2] = GRAPHICS_COLOR_RED;
+    color_alto[3] = GRAPHICS_COLOR_BLUE;
 
-    color_bajo[0] = baja_intensidad(color_alto[0], 4);
-    color_bajo[1] = baja_intensidad(color_alto[1], 4);
-    color_bajo[2] = baja_intensidad(color_alto[2], 4);
-    color_bajo[3] = baja_intensidad(color_alto[3], 4);
+    color_bajo[0] = GRAPHICS_COLOR_DARK_GREEN;
+    color_bajo[1] = GRAPHICS_COLOR_DARK_YELLOW;
+    color_bajo[2] = GRAPHICS_COLOR_DARK_RED;
+    color_bajo[3] = GRAPHICS_COLOR_DARK_BLUE;
 
     // dibujar base
     Graphics_clearDisplay(&g_sContext);
