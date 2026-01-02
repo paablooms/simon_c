@@ -6,6 +6,8 @@
 #include "Crystalfontz128x128_ST7735.h"
 #include "HAL_MSP430G2_Crystalfontz128x128_ST7735.h"
 
+int i=0;
+
 // NOTAS (sí como define)
 #define NOTE_DO   262
 #define NOTE_MI   330
@@ -247,7 +249,7 @@ int main(void){
     Graphics_clearDisplay(&g_sContext);
     Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
     Graphics_drawRectangle(&g_sContext, &barra);
-    for(int i=0;i<4;i++){
+    for(i=0;i<4;i++){
         Graphics_setForegroundColor(&g_sContext, color_bajo[i]);
         Graphics_fillRectangle(&g_sContext, &boton[i]);
     }
@@ -293,7 +295,7 @@ int main(void){
 
                     Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
                     Graphics_drawRectangle(&g_sContext, &barra);
-                    for(int i=0;i<4;i++){
+                    for(i=0;i<4;i++){
                         Graphics_setForegroundColor(&g_sContext, color_bajo[i]);
                         Graphics_fillRectangle(&g_sContext, &boton[i]);
                     }
@@ -307,7 +309,7 @@ int main(void){
                     start = 0;
 
                     semilla((uint16_t)(contador_ticks ^ 0xBEEF));
-                    for(int i=0;i<32;i++){
+                    for(i=0;i<32;i++){
                         secuencia[i] = aleatorio_1_4();
                     }
 
@@ -333,12 +335,12 @@ int main(void){
 
                     Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
                     Graphics_drawRectangle(&g_sContext, &barra);
-                    for(int i=0;i<4;i++){
+                    for(i=0;i<4;i++){
                         Graphics_setForegroundColor(&g_sContext, color_bajo[i]);
                         Graphics_fillRectangle(&g_sContext, &boton[i]);
                     }
 
-                    sprintf(cad, "RONDA %u", ronda);
+                    sprintf(cad, "RONDA %d", ronda);
                     Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
                     Graphics_drawString(&g_sContext, (int8_t*)cad, -1, 25, 40, TRANSPARENT_TEXT);
                     Graphics_drawString(&g_sContext, "MIRA...", -1, 35, 60, TRANSPARENT_TEXT);
@@ -356,7 +358,7 @@ int main(void){
             case MAQUINA:
                 if(paso_maquina >= ronda){
                     apaga_sonido();
-                    for(int i=0;i<4;i++){
+                    for(i=0;i<4;i++){
                         Graphics_setForegroundColor(&g_sContext, color_bajo[i]);
                         Graphics_fillRectangle(&g_sContext, &boton[i]);
                     }
@@ -534,14 +536,14 @@ int main(void){
 
                     Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
                     Graphics_drawRectangle(&g_sContext, &barra);
-                    for(int i=0;i<4;i++){
+                    for(i=0;i<4;i++){
                         Graphics_setForegroundColor(&g_sContext, color_bajo[i]);
                         Graphics_fillRectangle(&g_sContext, &boton[i]);
                     }
 
                     Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
                     Graphics_drawString(&g_sContext, "GAME OVER", -1, 25, 35, TRANSPARENT_TEXT);
-                    sprintf(cad, "PUNTOS: %u", puntuacion);
+                    sprintf(cad, "PUNTOS: %d", puntuacion);
                     Graphics_drawString(&g_sContext, (int8_t*)cad, -1, 20, 55, TRANSPARENT_TEXT);
                     Graphics_drawString(&g_sContext, "PULSA START", -1, 20, 75, TRANSPARENT_TEXT);
 
