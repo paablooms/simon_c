@@ -12,6 +12,8 @@
 #define NOTE_SOL  392
 #define NOTE_SI   494
 
+#define GRAPHICS_COLOR_YELLOW					 0x008B5400
+
 Graphics_Context g_sContext;
 
 // ===== Flags de despertar (tu estilo)
